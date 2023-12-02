@@ -168,11 +168,13 @@ cython_debug/
 # Ignore data
 data/raw/ml-100k
 
+# Ignore intermidiate data
+data/interim/merged.csv
+data/interim/item_mapping.csv
+data/interim/user_mapping.csv
+
 # Ignore models
 models/*.pt
 
-# Ignore tensorboard stuff
-t5-small-finetuned-de-toxification
-
 # Ignore visualization
-src/visualization/*.png
+src/*.png
