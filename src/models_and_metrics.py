@@ -302,6 +302,42 @@ class RecModel(nn.Module):
             precision_list
         )
 
+    def predict_for_user(self,
+                         user_id: int,
+                         viewed_items: list[int],
+                         n_usr: int,
+                         n_itm: int,
+                         train_edge_index: torch.Tensor) -> int:
+        """
+        Predicts the next item for a given user based on the trained model.
+
+        Parameters:
+            user_id (int): The identifier of the user for whom the prediction is made.
+            viewed_items (list[int]): List of items already viewed by the user.
+            n_usr (int): Total number of unique users in the dataset.
+            n_itm (int): Total number of unique items in the dataset.
+            train_edge_index (torch.Tensor): Edge indices of the training data.
+
+        Returns:
+            int: The predicted item for the user.
+
+        Note:
+            The prediction is based on the trained embeddings for users and items.
+            The prediction excludes items that have already been viewed by the user.
+        """
+        self.eval()
+        with torch.no_grad():
+            _, out = self(train_edge_index)
+            emb_u, emb_i = torch.split(out, [n_usr, n_itm])
+
+        user = emb_u[user_id]
+        scores = torch.matmul(emb_i, user)
+
+        if viewed_items:
+            scores[viewed_items] = -float('inf')
+
+        return scores.argmax().item()
+
 
 class LightGNNConv(MessagePassing):
     def __init__(self):

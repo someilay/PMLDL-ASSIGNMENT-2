@@ -99,3 +99,6 @@ jobs:
 
       - name: Run evaluate.py (with-feature, precision)
         run: python benchmark/evaluate.py -mt with-feature -mc precision
+
+      - name: Test recommend_movie.py
+        run: python benchmark/recommend_movie.py -ui 12 -vd 50 181 -mt with-feature

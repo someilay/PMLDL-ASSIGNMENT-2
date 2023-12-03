@@ -97,6 +97,32 @@ The model would be evaluated on [MovieLens](https://grouplens.org/datasets/movie
 python benchmark/evaluate.py -h
 ```
 
+To recommend a movie use:
+```bash
+python benchmark/recommend_movie.py -ui <user id> -vd <viewed movies> -mt <model type>
+```
+
+Example of usage:
+```bash
+python benchmark/recommend_movie.py -ui 12 -vd 50 181 -mt with-feature
+```
+
+Output:
+```
+Importing stuff...
+Loading the data
+Loading the model
+
+Recommendation id: 174
+Recommendation title: Raiders of the Lost Ark (1981)
+Recommendation mean rating: 4.252
+```
+
+For help:
+```bash
+python benchmark/recommend_movie.py -h
+```
+
 --- 
 
 ## Current metrics:
