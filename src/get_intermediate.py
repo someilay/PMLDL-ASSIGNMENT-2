@@ -13,7 +13,19 @@ parser = argparse.ArgumentParser(
 parser.add_argument('-r', '--reload', help='Regenerate data', action='store_true')
 
 
+# Define a parser for command-line arguments
 def generate_merged_data(ml_path: Path, interim_path: Path, reload: bool) -> Path:
+    """
+    Generates merged data from the MovieLens dataset.
+
+    Args:
+        ml_path (Path): Path to the MovieLens dataset.
+        interim_path (Path): Path to the interim data directory.
+        reload (bool): If True, force regeneration of data.
+
+    Returns:
+        Path: Path to the generated merged data.
+    """
     merged_path = interim_path / "merged.csv"
 
     if merged_path.exists() and not reload:
@@ -59,6 +71,17 @@ def generate_merged_data(ml_path: Path, interim_path: Path, reload: bool) -> Pat
 
 
 def generate_user_mapping(interim_path: Path, merged_path: Path, reload: bool) -> Path:
+    """
+    Generates user mapping data.
+
+    Args:
+        interim_path (Path): Path to the interim data directory.
+        merged_path (Path): Path to the merged data.
+        reload (bool): If True, force regeneration of data.
+
+    Returns:
+        Path: Path to the generated user mapping data.
+    """
     user_map_path = interim_path / 'user_mapping.csv'
 
     if user_map_path.exists() and not reload:
@@ -78,6 +101,17 @@ def generate_user_mapping(interim_path: Path, merged_path: Path, reload: bool) -
 
 
 def generate_item_mapping(interim_path: Path, merged_path: Path, reload: bool) -> Path:
+    """
+    Generates item mapping data.
+
+    Args:
+        interim_path (Path): Path to the interim data directory.
+        merged_path (Path): Path to the merged data.
+        reload (bool): If True, force regeneration of data.
+
+    Returns:
+        Path: Path to the generated item mapping data.
+    """
     item_map_path = interim_path / 'item_mapping.csv'
 
     if item_map_path.exists() and not reload:
@@ -102,6 +136,17 @@ def generate_benchmark_data(benchmark_data_path: Path,
                             item_map_path: Path,
                             merged_path: Path,
                             reload: bool):
+    """
+    Generates benchmark data for testing and training.
+
+    Args:
+        benchmark_data_path (Path): Path to the benchmark data directory.
+        ml_path (Path): Path to the MovieLens dataset.
+        user_map_path (Path): Path to the user mapping data.
+        item_map_path (Path): Path to the item mapping data.
+        merged_path (Path): Path to the merged data.
+        reload (bool): If True, force regeneration of data.
+    """
     print('Generating benchmark data')
     u_data_columns_name = ['user_id', 'item_id', 'rating', 'timestamp']
     u_user_columns = ['user_id', 'age', 'gender', 'occupation', 'zip code']
@@ -148,6 +193,9 @@ def generate_benchmark_data(benchmark_data_path: Path,
 
 
 def main():
+    """
+    Main function to execute data generation process based on command-line arguments.
+    """
     args = parser.parse_args()
     reload: bool = args.reload
 

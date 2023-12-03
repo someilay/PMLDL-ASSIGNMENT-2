@@ -18,7 +18,7 @@ from config import (
     BEST_RECALL_MODEL_PATH, BEST_PRECISION_MODEL_PATH, METRICS_HISTORY_PATH
 )
 
-
+# Command-line arguments
 parser = argparse.ArgumentParser(
     prog='Train RecSys script',
     description='Trains model',
@@ -81,6 +81,17 @@ parser.add_argument(
 
 
 def get_train_val_split(data: pd.DataFrame, random_state: int, test_ration: float) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Split the data into training and validation sets.
+
+    Parameters:
+        data (pd.DataFrame): Merged DataFrame containing user-item interactions.
+        random_state (int): Random seed for reproducibility.
+        test_ration (float): Ratio of data to be used for validation.
+
+    Returns:
+        tuple[pd.DataFrame, pd.DataFrame]: Training and validation DataFrames.
+    """
     data = data.copy()
     data['id'] = range(len(data))
     test_size = int(test_ration * len(data))
@@ -127,9 +138,25 @@ def get_train_val_split(data: pd.DataFrame, random_state: int, test_ration: floa
 
 def get_dataframes(merged_data: pd.DataFrame,
                    random_state: int,
-                   test_ration: float) -> tuple[pd.DataFrame, pd.DataFrame]:
+                   test_ratio: float) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Prepare training and testing DataFrames from merged data.
+
+    This function filters the merged data based on the 'rating' column, splits it into training and testing sets,
+    and ensures the correctness of the split.
+
+    Parameters:
+        merged_data (pd.DataFrame): Merged DataFrame containing user-item interactions.
+        random_state (int): Random seed for reproducibility.
+        test_ratio (float): Ratio of data to be used for validation.
+
+    Returns:
+        tuple[pd.DataFrame, pd.DataFrame]: Training and testing DataFrames.
+    """
+    # Filter data based on the 'rating' column
     merged_data_good = merged_data[merged_data['rating'] > 2]
-    train_df, test_df = get_train_val_split(merged_data_good, random_state, test_ration)
+    train_df, test_df = get_train_val_split(merged_data_good, random_state, test_ratio)
+    # Ensure correctness of the split
     assert len(train_df) + len(test_df) == len(merged_data_good)
     return train_df, test_df
 
@@ -140,6 +167,20 @@ def plot_metrics(metrics: list,
                  epochs: int,
                  step: int,
                  save_to: Path):
+    """
+    Plot metrics over epochs and save the plot.
+
+    This function takes a list of metrics, along with labels and parameters for the plot, and creates a line plot
+    representing the metrics over epochs. The plot is then saved to the specified location.
+
+    Parameters:
+        metrics (list): List of metric values to be plotted.
+        y_label (str): Label for the y-axis.
+        title (str): Title of the plot.
+        epochs (int): Total number of epochs.
+        step (int): Interval between x-axis ticks.
+        save_to (Path): Path to save the plot.
+    """
     epochs_range = range(1, epochs + 1, 1)
     x_tics = list(range(step, epochs + 1, step))
     if step > 1:
@@ -161,6 +202,12 @@ def plot_metrics(metrics: list,
 
 
 def main():
+    """
+    Train and evaluate a recommendation system model based on the provided command-line arguments.
+
+    This function parses command-line arguments, checks their validity, initializes the model and optimizer,
+    trains and evaluates the model, and saves the training history and best models.
+    """
     # Parse arguments
     args = parser.parse_args()
     epochs = args.epochs
@@ -178,6 +225,7 @@ def main():
     n_layers: int = args.n_layers
     model_type: str = args.model_type
 
+    # Convert paths to Path objects
     recall_best_save = Path(recall_best_save)
     precision_best_save = Path(precision_best_save)
     history = Path(history)
@@ -217,6 +265,7 @@ def main():
         print(f'model type should be one of [{ModelTypes.WITHOUT}, {ModelTypes.WITH}]')
         exit(1)
 
+    # Set random seed and device
     torch.manual_seed(random_state)
     device = torch.device(device)
 
@@ -224,6 +273,7 @@ def main():
     root_path = get_root_path()
     data_path = root_path / 'data'
     merged_path = data_path / 'interim' / 'merged.csv'
+    # Adjust paths if using default paths
     if recall_best_save == BEST_RECALL_MODEL_PATH:
         recall_best_save = root_path / recall_best_save
     if precision_best_save == BEST_PRECISION_MODEL_PATH:
@@ -231,6 +281,7 @@ def main():
     if history == METRICS_HISTORY_PATH:
         history = root_path / history
 
+    # Append model-specific paths
     recall_best_save = recall_best_save / MODEL2RECALL_SAVE_PATH[model_type]
     precision_best_save = precision_best_save / MODEL2PRECISION_SAVE_PATH[model_type]
     history = history / MODEL2HISTORY[model_type]
@@ -243,6 +294,7 @@ def main():
     n_users, n_items = count_user_items(merged_data)
     movie_cat_columns = list(merged_data.columns[13:-2])
 
+    # Initialize model based on model type
     if model_type == ModelTypes.WITH:
         model = FeaturedRecSysGNN(
             latent_dim=emb_dim,
@@ -260,6 +312,7 @@ def main():
             n_itm=n_items,
         ).to(device)
 
+    # Initialize optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     light_loss, light_bpr, light_reg, light_recall, light_precision = model.train_and_eval(
         optim=optimizer,
@@ -276,6 +329,7 @@ def main():
         ckpt_path_precision=precision_best_save,
     )
 
+    # Train and evaluate the model
     step = max(epochs // 10, 1)
     plot_metrics(light_loss, "Final Loss", "Final loss per epoch", epochs, step, history)
     plot_metrics(light_bpr, "BPR Loss", "BPR loss per epoch", epochs, step, history)
