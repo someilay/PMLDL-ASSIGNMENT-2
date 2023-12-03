@@ -67,20 +67,20 @@ jobs:
         run: pip list
 
       - name: Set PYTHONPATH
-        if: matrix.os != 'windows-latest'
-        run: export PYTHONPATH=$PYTHONPATH:$(pwd)
+#        if: matrix.os != 'windows-latest'
+        run: echo "PYTHONPATH=$PYTHONPATH:$(pwd)" >> $GITHUB_ENV
 
-      - name: Set PYTHONPATH for windows
-        if: matrix.os == 'windows-latest'
-        run: set PYTHONPATH=%PYTHONPATH;(%cd%)
+#      - name: Set PYTHONPATH for windows
+#        if: matrix.os == 'windows-latest'
+#        run: set PYTHONPATH=%PYTHONPATH;(%cd%)
 
       - name: Show PYTHONPATH
-        if: matrix.os != 'windows-latest'
+#        if: matrix.os != 'windows-latest'
         run: echo $PYTHONPATH
 
-      - name: Show PYTHONPATH for windows
-        if: matrix.os == 'windows-latest'
-        run: echo %PYTHONPATH
+#      - name: Show PYTHONPATH for windows
+#        if: matrix.os == 'windows-latest'
+#        run: echo %PYTHONPATH
 
       - name: Run make_dataset.py
         run: python src/get_data.py
