@@ -72,7 +72,7 @@ jobs:
 
       - name: Set PYTHONPATH for windows
         if: matrix.os == 'windows-latest'
-        run: echo "PYTHONPATH=%PYTHONPATH;%cd%" >> $GITHUB_ENV
+        run: echo "PYTHONPATH=%PYTHONPATH%;%cd%" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: Show PYTHONPATH
         if: matrix.os != 'windows-latest'
@@ -80,7 +80,7 @@ jobs:
 
       - name: Show PYTHONPATH for windows
         if: matrix.os == 'windows-latest'
-        run: echo %PYTHONPATH
+        run: echo %PYTHONPATH%
 
       - name: Run src/get_data.py
         run: python src/get_data.py
