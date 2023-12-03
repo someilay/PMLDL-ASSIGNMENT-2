@@ -72,7 +72,7 @@ jobs:
 
       - name: Set PYTHONPATH for windows
         if: matrix.os == 'windows-latest'
-        run: echo "PYTHONPATH=$env:PYTHONPATH;%cd%" | Out-File -FilePath $env:GITHUB_ENV -Append
+        run: echo "PYTHONPATH=$env:PYTHONPATH;$PWD.Path" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: Show PYTHONPATH
         if: matrix.os != 'windows-latest'
@@ -82,8 +82,8 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: echo $env:PYTHONPATH
 
-      - name: Run src/get_data.py
+      - name: Run get_data.py
         run: python src/get_data.py
 
-#      - name: Run visualize.py
-#        run: python src/visualize.py
+      - name: Run evaluate.py
+        run: python benchmark/evaluate.py -mt without-feature -mc recall
