@@ -88,5 +88,14 @@ jobs:
       - name: Run get_intermediate.py
         run: python src/get_intermediate.py
 
-      - name: Run evaluate.py
+      - name: Run evaluate.py (without-feature, recall)
         run: python benchmark/evaluate.py -mt without-feature -mc recall
+
+      - name: Run evaluate.py (without-feature, precision)
+        run: python benchmark/evaluate.py -mt without-feature -mc precision
+
+      - name: Run evaluate.py (with-feature, recall)
+        run: python benchmark/evaluate.py -mt with-feature -mc recall
+
+      - name: Run evaluate.py (with-feature, precision)
+        run: python benchmark/evaluate.py -mt with-feature -mc precision
