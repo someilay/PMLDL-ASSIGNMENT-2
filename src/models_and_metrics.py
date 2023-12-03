@@ -157,7 +157,15 @@ class RecModel(nn.Module):
                          pos_items: torch.Tensor,
                          neg_items: torch.Tensor,
                          edge_index: torch.Tensor) -> tuple[torch.Tensor, ...]:
-        raise NotImplemented("Should be implemented in child class")
+        emb0, out = self(edge_index)
+        return (
+            out[users],
+            out[pos_items],
+            out[neg_items],
+            emb0[users],
+            emb0[pos_items],
+            emb0[neg_items]
+        )
 
     def train_and_eval(self,
                        optim: torch.optim.Optimizer,
@@ -327,17 +335,45 @@ class RecSysGNN(RecModel):
 
         return emb0, out
 
-    def encode_minibatch(self,
-                         users: torch.Tensor,
-                         pos_items: torch.Tensor,
-                         neg_items: torch.Tensor,
-                         edge_index: torch.Tensor) -> tuple[torch.Tensor, ...]:
-        emb0, out = self(edge_index)
-        return (
-            out[users],
-            out[pos_items],
-            out[neg_items],
-            emb0[users],
-            emb0[pos_items],
-            emb0[neg_items]
-        )
+
+class FeaturedRecSysGNN(RecModel):
+    def __init__(
+            self,
+            latent_dim: int,
+            n_layers: int,
+            n_usr: int,
+            n_itm: int,
+            user_features: torch.Tensor,
+            item_features: torch.Tensor,
+    ):
+        super(FeaturedRecSysGNN, self).__init__()
+        self.embedding = nn.Embedding(n_usr + n_itm, latent_dim)
+        self.conv_s = nn.ModuleList(LightGCNConv() for _ in range(n_layers))
+        self.n_usr = n_usr
+        self.n_itm = n_itm
+        self.user_features = user_features
+        self.item_features = item_features
+        self.linear_1 = nn.Linear(user_features.size(1), latent_dim)
+        self.linear_2 = nn.Linear(item_features.size(1), latent_dim)
+        self.init_parameters()
+
+    def init_parameters(self):
+        # Authors of LightGCN report higher results with normal initialization
+        nn.init.normal_(self.embedding.weight, std=0.1)
+
+    def forward(self, edge_index: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        emb0 = self.embedding.weight
+        mapped_user_features = self.linear_1(self.user_features)
+        mapped_item_features = self.linear_2(self.item_features)
+        combined_features = torch.cat([mapped_user_features, mapped_item_features])
+        emb0 = combined_features + emb0
+        emb_s = [emb0]
+        emb = emb0
+
+        for conv in self.conv_s:
+            emb = conv(x=emb, edge_index=edge_index)
+            emb_s.append(emb)
+
+        out = torch.mean(torch.stack(emb_s, dim=0), dim=0)
+
+        return emb0, out

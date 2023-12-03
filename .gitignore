@@ -177,4 +177,5 @@ data/interim/user_mapping.csv
 models/*.pt
 
 # Ignore visualization
+src/*/*.png
 src/*.png

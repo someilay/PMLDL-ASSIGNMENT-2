@@ -4,18 +4,39 @@ import argparse
 import matplotlib.pyplot as plt
 import pandas as pd
 import torch
+import numpy as np
 
 from typing import Union
 from pathlib import Path
 
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder
 
-from models_and_metrics import RecSysGNN
+from models_and_metrics import RecSysGNN, FeaturedRecSysGNN
 from find_root_dir import get_root_path
 
-BEST_RECALL_MODEL_PATH = Path('models', 'rec_sys_gnn_recall.pt')
-BEST_PRECISION_MODEL_PATH = Path('models', 'rec_sys_gnn_precision.pt')
+BEST_RECALL_MODEL_PATH = Path('models')
+BEST_PRECISION_MODEL_PATH = Path('models')
 METRICS_HISTORY_PATH = Path('src')
+
+
+class ModelTypes:
+    WITHOUT = 'without-feature'
+    WITH = 'with-feature'
+
+
+MODEL2RECALL_SAVE_PATH = {
+    ModelTypes.WITHOUT: 'best-recall-model-without-features.pt',
+    ModelTypes.WITH: 'best-recall-model-with-features.pt',
+}
+MODEL2PRECISION_SAVE_PATH = {
+    ModelTypes.WITHOUT: 'best-precision-model-without-features.pt',
+    ModelTypes.WITH: 'best-precision-model-with-features.pt',
+}
+MODEL2HISTORY = {
+    ModelTypes.WITHOUT: 'history-without',
+    ModelTypes.WITH: 'history-with',
+}
 
 parser = argparse.ArgumentParser(
     prog='Train RecSysGNN script',
@@ -47,28 +68,34 @@ parser.add_argument(
 )
 parser.add_argument(
     '-rbs', '--recall-best-save',
-    help='Path where best model will be saved (by recall score)',
+    help='Path to folder where best model will be saved (by recall score)',
     type=str,
     default=BEST_RECALL_MODEL_PATH.as_posix(),
 )
 parser.add_argument(
     '-pbs', '--precision-best-save',
-    help='Path where best model will be saved (by precision score)',
+    help='Path to folder where best model will be saved (by precision score)',
     type=str,
     default=BEST_PRECISION_MODEL_PATH.as_posix(),
 )
 parser.add_argument(
     '-hs', '--history',
-    help='Path where metrics history will be saved',
+    help='Path to folder where metrics history will be saved',
     type=str,
     default=METRICS_HISTORY_PATH.as_posix(),
 )
 parser.add_argument('-ed', '--emb-dim', help='Embedding dimension, positive integer', type=int, default=64)
 parser.add_argument(
     '-nl', '--n-layers',
-    help='Amount of LightGNN layers, positive integer',
+    help='Amount of layers, positive integer',
     type=int,
     default=4
+)
+parser.add_argument(
+    '-mt', '--model-type',
+    help=f'Type of model ({ModelTypes.WITHOUT} or {ModelTypes.WITH})',
+    type=str,
+    default=ModelTypes.WITHOUT
 )
 
 
@@ -134,6 +161,30 @@ def load_merged_data(merged_path: Path) -> pd.DataFrame:
     return pd.read_csv(merged_path, sep="\t")
 
 
+def get_user_features(data: pd.DataFrame, dev: Union[torch.device, str] = "cpu") -> torch.Tensor:
+    encoder_1 = OneHotEncoder()
+    user_occupation = data.groupby(['user_id_new', 'occupation']).first().reset_index()
+    user_occupation = user_occupation[['user_id_new', 'occupation']]
+    user_occupation = user_occupation.sort_values('user_id_new')
+
+    user_features = np.expand_dims(user_occupation['occupation'].values, axis=1)
+    user_features = encoder_1.fit_transform(user_features).toarray()
+    user_features = torch.tensor(user_features, dtype=torch.float)
+
+    return user_features.to(dev)
+
+
+def get_item_features(data: pd.DataFrame,
+                      f_cols: list[str],
+                      dev: Union[torch.device, str] = "cpu") -> torch.Tensor:
+    item_features_df = data[f_cols + ['item_id_new']].sort_values('item_id_new')
+    item_features_df = item_features_df.groupby('item_id_new').first().reset_index()
+    item_features_df = item_features_df[f_cols]
+    item_features = torch.tensor(item_features_df.values, dtype=torch.float)
+
+    return item_features.to(dev)
+
+
 def plot_metrics(metrics: list,
                  y_label: str,
                  title: str,
@@ -175,6 +226,7 @@ def main():
     history: Union[str, Path] = args.history
     emb_dim: int = args.emb_dim
     n_layers: int = args.n_layers
+    model_type: str = args.model_type
 
     recall_best_save = Path(recall_best_save)
     precision_best_save = Path(precision_best_save)
@@ -210,10 +262,14 @@ def main():
     if n_layers <= 0:
         print('n-layers should be positive integer')
         exit(1)
+    if model_type not in [ModelTypes.WITHOUT, ModelTypes.WITH]:
+        print(f'model type should be one of [{ModelTypes.WITHOUT}, {ModelTypes.WITH}]')
+        exit(1)
 
     torch.manual_seed(random_state)
     device = torch.device(device)
 
+    # Define paths
     root_path = get_root_path()
     data_path = root_path / 'data'
     merged_path = data_path / 'interim' / 'merged.csv'
@@ -224,17 +280,35 @@ def main():
     if history == METRICS_HISTORY_PATH:
         history = root_path / history
 
+    recall_best_save = recall_best_save / MODEL2RECALL_SAVE_PATH[model_type]
+    precision_best_save = precision_best_save / MODEL2PRECISION_SAVE_PATH[model_type]
+    history = history / MODEL2HISTORY[model_type]
+    history.mkdir(exist_ok=True)
+
+    # Load data
     merged_data = load_merged_data(merged_path)
     merged_data_good = merged_data[merged_data['rating'] > 2]
     train_df, test_df = get_train_val_split(merged_data_good, random_state, test_ration)
     n_users, n_items = count_user_items(merged_data)
+    movie_cat_columns = list(merged_data.columns[13:-2])
 
-    model = RecSysGNN(
-        latent_dim=emb_dim,
-        n_layers=n_layers,
-        n_usr=n_users,
-        n_itm=n_items,
-    ).to(device)
+    if model_type == ModelTypes.WITH:
+        model = FeaturedRecSysGNN(
+            latent_dim=emb_dim,
+            n_layers=n_layers,
+            n_usr=n_users,
+            n_itm=n_items,
+            user_features=get_user_features(merged_data, device),
+            item_features=get_item_features(merged_data, movie_cat_columns, device),
+        ).to(device)
+    else:
+        model = RecSysGNN(
+            latent_dim=emb_dim,
+            n_layers=n_layers,
+            n_usr=n_users,
+            n_itm=n_items,
+        ).to(device)
+
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     light_loss, light_bpr, light_reg, light_recall, light_precision = model.train_and_eval(
         optim=optimizer,
@@ -247,8 +321,8 @@ def main():
         batch_size=batch_size,
         decay=decay,
         dev=device,
-        ckpt_path_recall=root_path / recall_best_save,
-        ckpt_path_precision=root_path / precision_best_save,
+        ckpt_path_recall=recall_best_save,
+        ckpt_path_precision=precision_best_save,
     )
 
     step = max(epochs // 10, 1)
