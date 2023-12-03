@@ -24,6 +24,21 @@ def compute_bpr_loss(users: torch.Tensor,
                      user_emb_0: torch.Tensor,
                      pos_emb_0: torch.Tensor,
                      neg_emb_0: torch.Tensor, ) -> tuple[torch.Tensor, torch.Tensor]:
+    """
+        Compute BPR loss and regularization loss.
+
+        Parameters:
+            users (torch.Tensor): Indices of users in the minibatch.
+            users_emb (torch.Tensor): Embeddings of users in the minibatch.
+            pos_emb (torch.Tensor): Embeddings of positive items in the minibatch.
+            neg_emb (torch.Tensor): Embeddings of negative items in the minibatch.
+            user_emb_0 (torch.Tensor): Initial embeddings of users.
+            pos_emb_0 (torch.Tensor): Initial embeddings of positive items.
+            neg_emb_0 (torch.Tensor): Initial embeddings of negative items.
+
+        Returns:
+            tuple[torch.Tensor, torch.Tensor]: BPR loss and regularization loss.
+        """
     # compute loss from initial embeddings, used for regularization
     reg_loss = (1 / 2) * (
             user_emb_0.norm().pow(2) +
@@ -48,6 +63,22 @@ def compute_metrics(user_embs: torch.Tensor,
                     test_data: pd.DataFrame,
                     top_k: int,
                     dev: Union[torch.device, str] = "cpu"):
+    """
+    Compute recall and precision metrics.
+
+    Parameters:
+        user_embs (torch.Tensor): User embeddings.
+        item_embs (torch.Tensor): Item embeddings.
+        n_usr (int): Number of unique users.
+        n_itm (int): Number of unique items.
+        train_data (pd.DataFrame): Training data.
+        test_data (pd.DataFrame): Test data.
+        top_k (int): Top-k items to consider.
+        dev (Union[torch.device, str]): Device for computation.
+
+    Returns:
+        tuple[float, float]: Mean recall and mean precision.
+    """
     if isinstance(dev, str):
         dev = torch.device(dev)
 
@@ -110,6 +141,19 @@ class RecModel(nn.Module):
                          pos_items: torch.Tensor,
                          neg_items: torch.Tensor,
                          edge_index: torch.Tensor) -> tuple[torch.Tensor, ...]:
+        """
+        Encode a minibatch of users, positive items, and negative items using the RecModel.
+
+        Parameters:
+            users (torch.Tensor): Indices of users in the minibatch.
+            pos_items (torch.Tensor): Indices of positive items in the minibatch.
+            neg_items (torch.Tensor): Indices of negative items in the minibatch.
+            edge_index (torch.Tensor): The edge index tensor representing the graph connectivity.
+
+        Returns:
+            Tuple[torch.Tensor, ...]: A tuple containing embeddings for users, positive items, and negative items,
+            both in the initial and final representations.
+        """
         emb0, out = self(edge_index)
         return (
             out[users],
@@ -133,6 +177,26 @@ class RecModel(nn.Module):
                        dev: Union[torch.device, str] = "cpu",
                        ckpt_path_recall: Union[str, Path, None] = None,
                        ckpt_path_precision: Union[str, Path, None] = None):
+        """
+        Train and evaluate the RecModel.
+
+        Parameters:
+            optim (torch.optim.Optimizer): PyTorch optimizer.
+            train_data (pd.DataFrame): Training data.
+            test_data (pd.DataFrame): Test data.
+            epochs (int): Number of training epochs.
+            n_usr (int): Number of unique users.
+            n_itm (int): Number of unique items.
+            top_k (int): Top-k items to consider for evaluation.
+            batch_size (int): Batch size for training.
+            decay (float): Decay factor for regularization.
+            dev (Union[torch.device, str]): Device for computation.
+            ckpt_path_recall (Union[str, Path, None]): Checkpoint path for saving model based on recall.
+            ckpt_path_precision (Union[str, Path, None]): Checkpoint path for saving model based on precision.
+
+        Returns:
+            Tuple of lists containing losses and metrics during training.
+        """
         train_edge_index = get_edge_index(train_data, n_usr, dev)
         loss_list_epoch = []
         bpr_loss_list_epoch = []
@@ -239,11 +303,21 @@ class RecModel(nn.Module):
         )
 
 
-class LightGCNConv(MessagePassing):
+class LightGNNConv(MessagePassing):
     def __init__(self):
         super().__init__(aggr='add')
 
     def forward(self, x: torch.Tensor, edge_index: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass through the LightGNNConv layer.
+
+        Parameters:
+            x (torch.Tensor): Input tensor.
+            edge_index (torch.Tensor): The edge index tensor representing the graph connectivity.
+
+        Returns:
+            torch.Tensor: Output tensor.
+        """
         # Compute normalization
         from_, to_ = edge_index
         deg = degree(to_, x.size(0), dtype=x.dtype)
@@ -255,6 +329,16 @@ class LightGCNConv(MessagePassing):
         return self.propagate(edge_index, x=x, norm=norm)
 
     def message(self, x_j: torch.Tensor, norm: torch.Tensor) -> torch.Tensor:
+        """
+        Message computation for LightGNNConv layer.
+
+        Parameters:
+            x_j (torch.Tensor): Input tensor.
+            norm (torch.Tensor): Normalization tensor.
+
+        Returns:
+            torch.Tensor: Output tensor.
+        """
         return norm.view(-1, 1) * x_j
 
 
@@ -268,14 +352,26 @@ class RecSysGNN(RecModel):
     ):
         super(RecSysGNN, self).__init__()
         self.embedding = nn.Embedding(n_usr + n_itm, latent_dim)
-        self.conv_s = nn.ModuleList(LightGCNConv() for _ in range(n_layers))
+        self.conv_s = nn.ModuleList(LightGNNConv() for _ in range(n_layers))
         self.init_parameters()
 
     def init_parameters(self):
+        """
+        Initialize the parameters of the embedding layer using normal distribution with a standard deviation of 0.1.
+        """
         # Authors of LightGCN report higher results with normal initialization
         nn.init.normal_(self.embedding.weight, std=0.1)
 
     def forward(self, edge_index: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        """
+        Forward pass through the RecSysGNN model.
+
+        Parameters:
+            edge_index (torch.Tensor): The edge index tensor representing the graph connectivity.
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: A tuple containing the initial embeddings and the final embeddings.
+        """
         emb0 = self.embedding.weight
         emb_s = [emb0]
 
@@ -301,7 +397,7 @@ class FeaturedRecSysGNN(RecModel):
     ):
         super(FeaturedRecSysGNN, self).__init__()
         self.embedding = nn.Embedding(n_usr + n_itm, latent_dim)
-        self.conv_s = nn.ModuleList(LightGCNConv() for _ in range(n_layers))
+        self.conv_s = nn.ModuleList(LightGNNConv() for _ in range(n_layers))
         self.n_usr = n_usr
         self.n_itm = n_itm
         self.user_features = user_features
@@ -315,11 +411,20 @@ class FeaturedRecSysGNN(RecModel):
         nn.init.normal_(self.embedding.weight, std=0.1)
 
     def forward(self, edge_index: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        """
+        Forward pass through the FeaturedRecSysGNN model.
+
+        Parameters:
+            edge_index (torch.Tensor): The edge index tensor representing the graph connectivity.
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: A tuple containing the initial embeddings and the final embeddings.
+        """
         emb0 = self.embedding.weight
         mapped_user_features = self.linear_1(self.user_features)
         mapped_item_features = self.linear_2(self.item_features)
         combined_features = torch.cat([mapped_user_features, mapped_item_features])
-        emb0 = combined_features + emb0
+        emb0 = combined_features + emb0  # Add features influence
         emb_s = [emb0]
         emb = emb0
 

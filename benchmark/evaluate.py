@@ -1,21 +1,10 @@
-import argparse
-import time
-import os
+print("Importing stuff...")
 
-import numpy as np
-import pandas as pd
+import argparse
 
 import torch
-import torch.nn as nn
-import torch.nn.functional as torch_nnf
-
-from typing import Union, Iterable
+from typing import Union
 from pathlib import Path
-from torch_geometric.nn.conv import MessagePassing
-from torch_geometric.utils import degree
-
-from tqdm import tqdm
-from sklearn.preprocessing import OneHotEncoder
 
 from src.find_root_dir import get_root_path
 from src.models_and_metrics import compute_metrics, get_edge_index, FeaturedRecSysGNN, RecSysGNN
@@ -71,6 +60,11 @@ parser.add_argument(
 
 
 def main():
+    """
+    Main function for evaluating the Recommender System model.
+    Parses command line arguments, loads data, initializes and loads the model,
+    performs evaluation, and prints the mean recall and precision scores.
+    """
     # Parse arguments
     args = parser.parse_args()
     device: Union[torch.device, str] = args.device
