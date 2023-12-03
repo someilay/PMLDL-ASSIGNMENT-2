@@ -4,42 +4,23 @@ import argparse
 import matplotlib.pyplot as plt
 import pandas as pd
 import torch
-import numpy as np
 
 from typing import Union
 from pathlib import Path
 
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import OneHotEncoder
 
 from models_and_metrics import RecSysGNN, FeaturedRecSysGNN
 from find_root_dir import get_root_path
+from utils import get_item_features, get_user_features, load_merged_data, count_user_items
+from config import (
+    ModelTypes, MODEL2HISTORY, MODEL2RECALL_SAVE_PATH, MODEL2PRECISION_SAVE_PATH,
+    BEST_RECALL_MODEL_PATH, BEST_PRECISION_MODEL_PATH, METRICS_HISTORY_PATH
+)
 
-BEST_RECALL_MODEL_PATH = Path('models')
-BEST_PRECISION_MODEL_PATH = Path('models')
-METRICS_HISTORY_PATH = Path('src')
-
-
-class ModelTypes:
-    WITHOUT = 'without-feature'
-    WITH = 'with-feature'
-
-
-MODEL2RECALL_SAVE_PATH = {
-    ModelTypes.WITHOUT: 'best-recall-model-without-features.pt',
-    ModelTypes.WITH: 'best-recall-model-with-features.pt',
-}
-MODEL2PRECISION_SAVE_PATH = {
-    ModelTypes.WITHOUT: 'best-precision-model-without-features.pt',
-    ModelTypes.WITH: 'best-precision-model-with-features.pt',
-}
-MODEL2HISTORY = {
-    ModelTypes.WITHOUT: 'history-without',
-    ModelTypes.WITH: 'history-with',
-}
 
 parser = argparse.ArgumentParser(
-    prog='Train RecSysGNN script',
+    prog='Train RecSys script',
     description='Trains model',
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
 )
@@ -153,38 +134,6 @@ def get_dataframes(merged_data: pd.DataFrame,
     return train_df, test_df
 
 
-def count_user_items(merged_data: pd.DataFrame) -> tuple[int, int]:
-    return merged_data.user_id_new.nunique(), merged_data.item_id_new.nunique()
-
-
-def load_merged_data(merged_path: Path) -> pd.DataFrame:
-    return pd.read_csv(merged_path, sep="\t")
-
-
-def get_user_features(data: pd.DataFrame, dev: Union[torch.device, str] = "cpu") -> torch.Tensor:
-    encoder_1 = OneHotEncoder()
-    user_occupation = data.groupby(['user_id_new', 'occupation']).first().reset_index()
-    user_occupation = user_occupation[['user_id_new', 'occupation']]
-    user_occupation = user_occupation.sort_values('user_id_new')
-
-    user_features = np.expand_dims(user_occupation['occupation'].values, axis=1)
-    user_features = encoder_1.fit_transform(user_features).toarray()
-    user_features = torch.tensor(user_features, dtype=torch.float)
-
-    return user_features.to(dev)
-
-
-def get_item_features(data: pd.DataFrame,
-                      f_cols: list[str],
-                      dev: Union[torch.device, str] = "cpu") -> torch.Tensor:
-    item_features_df = data[f_cols + ['item_id_new']].sort_values('item_id_new')
-    item_features_df = item_features_df.groupby('item_id_new').first().reset_index()
-    item_features_df = item_features_df[f_cols]
-    item_features = torch.tensor(item_features_df.values, dtype=torch.float)
-
-    return item_features.to(dev)
-
-
 def plot_metrics(metrics: list,
                  y_label: str,
                  title: str,
@@ -212,6 +161,7 @@ def plot_metrics(metrics: list,
 
 
 def main():
+    # Parse arguments
     args = parser.parse_args()
     epochs = args.epochs
     batch_size: int = args.batch_size
@@ -232,6 +182,7 @@ def main():
     precision_best_save = Path(precision_best_save)
     history = Path(history)
 
+    # Check params
     if not 0.05 <= test_ration <= 0.5:
         print('test-ration should be in range [0.05, 0.5]')
         exit(1)

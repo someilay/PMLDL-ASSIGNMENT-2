@@ -173,6 +173,11 @@ data/interim/merged.csv
 data/interim/item_mapping.csv
 data/interim/user_mapping.csv
 
+# Ignore benchmark data
+benchmark/data/merged.csv
+benchmark/data/merged-base-*.csv
+benchmark/data/merged-test-*.csv
+
 # Ignore models
 models/*.pt
 
