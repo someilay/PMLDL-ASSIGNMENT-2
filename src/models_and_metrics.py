@@ -1,67 +1,20 @@
-import time
-
-import numpy as np
 import pandas as pd
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as torch_nnf
 
-from typing import Union, Iterable
+from typing import Union
 from pathlib import Path
 from torch_geometric.nn.conv import MessagePassing
 from torch_geometric.utils import degree
 
 from tqdm import tqdm
 
-
-def get_not_in(x: Iterable[int], low: int, high: int) -> int:
-    candidate = np.random.randint(low, high)
-    while candidate in x:
-        candidate = np.random.randint(low, high)
-    return candidate
-
-
-def get_batch(data: pd.DataFrame,
-              batch_size: int,
-              n_usr: int,
-              n_itm: int,
-              dev: Union[torch.device, str] = 'cpu') -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-    users_liked_items = data.groupby('user_id_new')['item_id_new'].apply(list).reset_index()
-    indices: np.ndarray = np.arange(0, n_usr, 1)
-
-    chosen_users = np.random.choice(indices, batch_size, replace=n_usr < batch_size)
-    chosen_users.sort()
-
-    users_liked_items = pd.merge(
-        users_liked_items,
-        pd.DataFrame(chosen_users, columns=['user_id_new']),
-        how='right',
-        on='user_id_new'
-    )
-    pos_items = users_liked_items['item_id_new'].apply(lambda x: np.random.choice(x)).values + n_usr
-    neg_items = users_liked_items['item_id_new'].apply(lambda x: get_not_in(x, 0, n_itm)).values + n_usr
-
-    return (
-        torch.LongTensor(chosen_users).to(dev),
-        torch.LongTensor(pos_items).to(dev),
-        torch.LongTensor(neg_items).to(dev),
-    )
-
-
-def get_edge_index(data: pd.DataFrame,
-                   n_usr: int,
-                   dev: Union[torch.device, str] = 'cpu') -> torch.Tensor:
-    u_t = torch.LongTensor(data.user_id_new.values)
-    i_t = torch.LongTensor(data.item_id_new.values) + n_usr
-
-    train_edge_index = torch.stack(
-        (
-            torch.cat([u_t, i_t]),
-            torch.cat([i_t, u_t])
-        )
-    ).to(dev)
-    return train_edge_index
+try:
+    from utils import get_batch, get_edge_index
+except ModuleNotFoundError:
+    from src.utils import get_batch, get_edge_index
 
 
 def compute_bpr_loss(users: torch.Tensor,

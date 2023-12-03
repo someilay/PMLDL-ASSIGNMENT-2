@@ -1,0 +1,11 @@
+user_id	item_id	rating	timestamp	age	gender	occupation	zip code	movie_title	release date	video release date	IMDb URL	unknown	Action	Adventure	Animation	Children	Comedy	Crime	Documentary	Drama	Fantasy	Film-Noir	Horror	Musical	Mystery	Romance	Sci-Fi	Thriller	War	Western	user_id_new	item_id_new
+196	242	3	1997-12-04 15:55:49	49	M	writer	55105	Kolya (1996)	24-Jan-1997		http://us.imdb.com/M/title-exact?Kolya%20(1996)	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	195	241
+305	242	5	1998-02-01 04:37:08	23	M	programmer	94086	Kolya (1996)	24-Jan-1997		http://us.imdb.com/M/title-exact?Kolya%20(1996)	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	304	241
+6	242	4	1997-12-28 00:16:10	42	M	executive	98101	Kolya (1996)	24-Jan-1997		http://us.imdb.com/M/title-exact?Kolya%20(1996)	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	5	241
+234	242	4	1998-03-27 21:14:21	60	M	retired	94702	Kolya (1996)	24-Jan-1997		http://us.imdb.com/M/title-exact?Kolya%20(1996)	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	233	241
+63	242	3	1997-10-01 23:06:30	31	M	marketing	75240	Kolya (1996)	24-Jan-1997		http://us.imdb.com/M/title-exact?Kolya%20(1996)	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	62	241
+181	242	1	1997-11-08 04:03:34	26	M	executive	21218	Kolya (1996)	24-Jan-1997		http://us.imdb.com/M/title-exact?Kolya%20(1996)	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	180	241
+201	242	4	1998-01-06 18:16:38	27	M	writer	E2A4H	Kolya (1996)	24-Jan-1997		http://us.imdb.com/M/title-exact?Kolya%20(1996)	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	200	241
+249	242	5	1997-11-15 05:23:58	25	M	student	84103	Kolya (1996)	24-Jan-1997		http://us.imdb.com/M/title-exact?Kolya%20(1996)	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	248	241
+13	242	2	1997-12-07 17:19:53	47	M	educator	29206	Kolya (1996)	24-Jan-1997		http://us.imdb.com/M/title-exact?Kolya%20(1996)	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	12	241
+279	242	3	1997-10-25 05:17:27	33	M	programmer	85251	Kolya (1996)	24-Jan-1997		http://us.imdb.com/M/title-exact?Kolya%20(1996)	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	278	241
