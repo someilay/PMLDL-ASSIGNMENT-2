@@ -143,7 +143,7 @@ def main():
             user_features=get_user_features(merged_data, device),
             item_features=get_item_features(merged_data, movie_cat_columns, device),
         )
-        model.load_state_dict(torch.load(load_path))
+        model.load_state_dict(torch.load(load_path, map_location=device))
         model = model.to(device)
     else:
         model = RecSysGNN(
@@ -152,7 +152,7 @@ def main():
             n_usr=n_users,
             n_itm=n_items,
         )
-        model.load_state_dict(torch.load(load_path))
+        model.load_state_dict(torch.load(load_path, map_location=device))
         model = model.to(device)
 
     total_recall = 0
