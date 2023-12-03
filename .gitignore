@@ -178,9 +178,6 @@ benchmark/data/merged.csv
 benchmark/data/merged-base-*.csv
 benchmark/data/merged-test-*.csv
 
-# Ignore models
-models/*.pt
-
 # Ignore visualization
 src/*/*.png
 src/*.png
