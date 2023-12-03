@@ -85,5 +85,8 @@ jobs:
       - name: Run get_data.py
         run: python src/get_data.py
 
+      - name: Run get_intermediate.py
+        run: python src/get_intermediate.py
+
       - name: Run evaluate.py
         run: python benchmark/evaluate.py -mt without-feature -mc recall
