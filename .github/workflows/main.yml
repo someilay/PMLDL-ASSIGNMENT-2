@@ -8,6 +8,8 @@ on:
   pull_request:
     types:
       - closed
+      - opened
+      - synchronize
     branches:
       - master
 
@@ -66,11 +68,11 @@ jobs:
 
       - name: Set PYTHONPATH
         if: matrix.os != 'windows-latest'
-        run: export PYTHONPATH=$PYTHONPATH:$(pwd)
+        run: echo "PYTHONPATH=$PYTHONPATH:$(pwd)" >> $GITHUB_ENV
 
       - name: Set PYTHONPATH for windows
         if: matrix.os == 'windows-latest'
-        run: set PYTHONPATH=%PYTHONPATH;(%cd%)
+        run: echo "PYTHONPATH=$env:PYTHONPATH;$PWD" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: Show PYTHONPATH
         if: matrix.os != 'windows-latest'
@@ -78,10 +80,22 @@ jobs:
 
       - name: Show PYTHONPATH for windows
         if: matrix.os == 'windows-latest'
-        run: echo %PYTHONPATH
+        run: echo $env:PYTHONPATH
 
-      - name: Run make_dataset.py
+      - name: Run get_data.py
         run: python src/get_data.py
 
-#      - name: Run visualize.py
-#        run: python src/visualize.py
+      - name: Run get_intermediate.py
+        run: python src/get_intermediate.py
+
+      - name: Run evaluate.py (without-feature, recall)
+        run: python benchmark/evaluate.py -mt without-feature -mc recall
+
+      - name: Run evaluate.py (without-feature, precision)
+        run: python benchmark/evaluate.py -mt without-feature -mc precision
+
+      - name: Run evaluate.py (with-feature, recall)
+        run: python benchmark/evaluate.py -mt with-feature -mc recall
+
+      - name: Run evaluate.py (with-feature, precision)
+        run: python benchmark/evaluate.py -mt with-feature -mc precision

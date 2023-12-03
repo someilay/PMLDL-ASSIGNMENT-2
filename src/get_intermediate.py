@@ -142,7 +142,7 @@ def generate_benchmark_data(benchmark_data_path: Path,
     all_data_path = benchmark_data_path / merged_path.name
 
     if not all_data_path.exists():
-        shutil.copyfile(merged, all_data_path)
+        shutil.copyfile(merged_path, all_data_path)
 
     print('Done')
 
